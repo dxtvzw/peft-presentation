@@ -1,0 +1,306 @@
+\documentclass[9pt]{beamer}
+
+\input{StyleFile.tex}
+
+\usepackage{wrapfig}
+
+\usepackage[main=russian,english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1,T2A]{fontenc}
+
+\usepackage[backend=biber,style=numeric,urldate=long,maxbibnames=99,sorting=none]{biblatex}
+\addbibresource{refs.bib}
+
+\title[\textbf{PEFT}]{Parameter-Efficient Fine-Tuning} % The short title appears at the bottom of every slide, the full title is only on the title page
+
+\author[\textbf{Алихан Зиманов}]
+{Алихан Зиманов} % Your name
+
+\institute[\textbf{ПМИ ФКН НИУ ВШЭ}] % Your institution as it will appear on the bottom of every slide, may be shorthand to save space
+{Факультет компьютерных наук\\
+НИУ ВШЭ % Your institution for the title page
+}
+
+\jointwork{feat. Илья Пахалко}
+\conference{НИС, Москва, 2023}
+
+%===== Uncomment the following if you wish to use references
+%\usepackage[backend=bibtex,citestyle=authoryear-icomp,natbib,maxcitenames=1]{biblatex}
+%\addbibresource{bibfile.bib}
+
+% use this so appendices' page numbers do not count
+\usepackage{appendixnumberbeamer}
+
+\begin{document}
+
+% Title page, navigation surpressed, no page number
+{
+\beamertemplatenavigationsymbolsempty
+\begin{frame}[plain]
+\titlepage
+\end{frame}
+}
+
+% TOC, navigation surpressed, no page number
+{
+\beamertemplatenavigationsymbolsempty
+\defbeamertemplate*{headline}{miniframes theme no subsection no content}
+{ \begin{beamercolorbox}{section in head/foot}
+    \vskip\headheight
+  \end{beamercolorbox}}
+\begin{frame}{Содежрание} 
+\tableofcontents 
+\end{frame} 
+}
+
+\addtocounter{framenumber}{-2}
+
+
+\section{Введение}
+
+
+\begin{frame}{Transfer Learning}
+
+    \begin{definition}
+        Применение опыта, полученного при решении одной задачи для решения новой задачи из той же области.
+    \end{definition}
+
+    \begin{example}[Классификация изображений]
+        ResNet, обученный на ImageNet будет содержать в себе информацию о паттернах в картинках в целом, поэтому можно эту абстрактную информацию переиспользовать для решения других, более узких задач.
+    \end{example}
+
+    \begin{example}[Языковая модель]
+        Эмбеддинги, обученные на колоссальных датасетах будут содержать в себе сложную информацию о структуре языка, поэтому их переиспользование для других задач NLP будет весьма удобным.
+    \end{example}
+
+\end{frame}
+
+
+\begin{frame}{Подходы в NLP}
+
+    \begin{block}{Pre-trained text representations (feature-based transfer)}
+        Использование эбмеддингов, обученных на огромных датасетах для получения полезных признаковых описаний токенов.
+    \end{block}
+
+    \begin{block}{Fine-tuning}
+        Использование уже обученной, но на другую задачу модели как инициализацию весов модели, решающей текущую задачу.
+    \end{block}
+
+    \begin{block}{Parameter-Efficient Fine-Tuning}
+        Fine-tuning, обучающий как можно меньшее количество добавленных параметров или параметров исходной модели, при этом не теряющий точности решения задачи.
+    \end{block}
+
+\end{frame}
+
+\begin{frame}{Техники обучения в NLP}
+
+    \begin{block}{Multi-task Learning}
+        Обучение модели на несколько задач одновременно. У модели имеются общие по всем задачам глубокие слои и специализированные под каждую задачу верхние слои.
+    \end{block}
+
+    \begin{block}{Continual Learning}
+        Последовательное переобучение\footnote{не overfitting, а re-training} модели под каждую новую задачу.
+    \end{block}
+
+\end{frame}
+
+
+\section{Adapter Tuning}
+
+\begin{frame}{Adapter Tuning}
+
+    Первая рассматриваемая техника PEFT это Adapter Tuning~\cite{adapter}. Хочется придумать такую технику, которая позволит решить следующие проблемы:
+    
+    \begin{itemize}
+        \item Fine-tuning обучает все веса модели, что очень медленно и хочется обучать только малую часть весов;
+        \item Multi-task learning подразумевает одновременное решение задач, что иногда бывает сложным, поэтому хочется уметь решать несколько задач, при этом не имея доступ ко всем задачам одновременно;
+        \item Continual learning подразумевает дообучение имеющейся модели под новую задачу, при этом либо способность модели решать старую задачу утрачивается и сильно страдает качество, либо количество обучаемых параметров линейно возрастает с каждой следующей задачей.
+    \end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{Махания руками}
+
+    Рассмотрим функцию (нейронную сеть) с параметрами $w$: $\phi_w(x)$.
+    
+    \begin{block}{Feature-based Transfer}
+        Этот метод предлагает использовать композицию $\phi_w$ с новой функцией $\chi_v$, получая, таким образом, новую нейронную сеть $\chi_v(\phi_w(x))$. После этого обучаются только веса $v$, специфичные под текущую задачу.
+    \end{block}
+
+    \begin{block}{Fine-tuning}
+        Этот метод предлагает дообучение имеющихся параметров $w$ под новую задачу, ограничивая компактность\footnote{компактная модель использует малое количество дополнительных параметров для решения новых задач} модели.
+    \end{block}
+    
+\end{frame}
+
+
+\begin{frame}{Махания руками 2.0}
+    
+    \begin{block}{Adapter tuning}
+        Этот метод предлагает ввести новую функцию $\psi_{w, v}(x)$, где $w$ это в точности те же параметры, что и в $\phi_w$. Новые параметры $v$ инициализируются так, чтобы новая функция повторяла исходную: $\psi_{w, v_0}(x) \approx \phi_w(x)$. Во время обучения обновляются только веса $v$, а $w$ остаются неизменными. В идеале мы хотим строить функции $\psi$ такие, что $|v| \ll |w|$, чтобы размер модели практически не возрастал при добавлении новых параметров.
+    \end{block}
+
+    \begin{block}{Как это делать?}
+        Для решения каждой новой задачи между слоями исходной модели будем добавлять новые, так называемые, adapter слои. В процессе обучения обновляться будут только веса этих добавленных слоев.
+    \end{block}
+
+\end{frame}
+
+
+\begin{frame}{Adapter tuning для трансформеров}
+
+    \begin{columns}
+        \column{0.45\textwidth} \begin{figure}
+            \caption{Слева блок трансформера, справа слой адаптера}
+            \label{adapter:block}
+            \includegraphics[scale=0.5]{images/adapter_1.jpg}
+        \end{figure}
+        \column{0.55\textwidth} \begin{block}{Transformer}
+            В трансформере есть два главных типа слоёв: \textit{attention} слой и \textit{feedforward} слой. Слой \textit{adapter} добавляется сразу после каждой пары указанных слоев, но перед слоем нормализации и перед \textit{skip connection} слоем.
+        \end{block} \begin{block}{Adapter}
+            Слой адаптера по смыслу сначала проецирует $d$-мерные вектора признаков в меньшее $m$-мерное пространство, применяют нелинейность и проецируют вектора обратно в $d$-мерное пространство, добавив skip connection.
+        \end{block}
+    \end{columns}
+
+\end{frame}
+
+
+\begin{frame}{Махания руками 3.0}
+
+    \begin{block}{Количество параметров}
+        Заметим, что количество обучаемых параметров в одном adapter слое будет $2 m d + d + m$. Если брать $m \ll d$, мы можем легко ограничить количество добавляемых параметров для решения новой задачи. На практике можно добиться добавления всего $0.5 - 8\%$ параметров от исходной модели.
+    \end{block}
+
+    \begin{block}{Инициализация}
+        Если инициализировать веса adapter слоя околонулевыми числами, то skip connection слой позволит новой модели имитировать исходную модель.
+    \end{block}
+
+    \begin{block}{Удобно?}
+        Да\footnote{потому что новые задачи не портят качество на старых задачах в силу неизменения старых весов и количество новых параметров очень мало}.
+    \end{block}
+    
+\end{frame}
+
+
+\begin{frame}{Эксперименты}
+    
+    \begin{block}{Результаты}
+        На GLUE бенчмарке adapter tuning позволяет достичь результата в диапазоне $0.4\%$ от fine-tuning всех параметров модели BERT, при этом adapter tuning добавляет и обучает всего $3\%$ от общего количества параметров модели.
+    \end{block}
+
+    \begin{figure}
+        \begin{center}
+            \includegraphics[scale=0.45]{images/adapter_2.jpg}
+        \end{center}
+    \end{figure}
+
+\end{frame}
+
+
+\section{Prefix-Tuning}
+
+\begin{frame}{Prefix-Tuning}
+
+    \begin{block}{Prefix-tuning}
+        Вторая рассматриваемая техника PEFT это Prefix Tuning~\cite{prefix}. Эта техника пытается решить те же проблемы, что и adapter tuning, а именно обучаться на новые задачи не теряя способности решать старые, а также обучение минимального количества весов модели\footnote{оказывается у этого есть название --- lightweight fine-tunning}, чтобы для новых задач не требовалось хранить полные копии исходной модели.
+    \end{block}
+
+    \begin{block}{Задачи}
+        Авторы статьи предлагают применить эту технику для задач типа table-to-text и summarization.
+
+        \begin{itemize}
+            \item Table-to-text --- генерация текстового описания объекта по структурированному табличному описанию. Например, из табличного представления $(\text{name}: \text{'Starbucks'}, \text{type}: \text{'coffee shop'})$ хотим получить текстовое описание: 'Starbucks serves coffee'.
+            \item Summarization --- генерация краткого текстового описания более длинного исходного текста.
+        \end{itemize}
+
+    \end{block}
+
+\end{frame}
+
+
+\begin{frame}{Махания руками}
+
+    \begin{block}{Контекст}
+        В языковых моделях для генерации текста используются векторы контекста\footnote{вспоминаем рекуррентные нейронные сети}, призванные помогать модели понимать, что ей следует предсказывать дальше.
+    \end{block}
+
+    \begin{block}<2->{Гениальная идея}
+        Можно ли придумать такой контекст в виде префикса, дописываемого перед каждыми входными данными, который будет указывать модели не просто генерируемый результат, а саму задачу, которая модель должна решать?
+
+        \begin{solution}<3->
+            Да!
+        \end{solution}
+    \end{block}
+
+\end{frame}
+
+
+\begin{frame}{Красивая картинка}
+    \begin{figure}
+        \caption{Добавление контекста в префикс входных данных и сравнение с полным fine-tuning}
+        \begin{center}
+            \includegraphics[scale=0.5]{images/prefix_1.jpg}
+        \end{center}
+    \end{figure}
+\end{frame}
+
+
+\begin{frame}{Эксперименты}
+    
+    \begin{block}{Датасеты}
+        Для table-to-text задачи использовались датасеты E2E, WebNLG и DART, а для summarization использовался XSUM.
+    \end{block}
+    
+    \begin{block}{Архитектуры}
+        Для table-to-text использовались $\text{GPT-2}_{\text{MEDIUM}}$ и $\text{GPT-2}_{\text{LARGE}}$. Для summarization использовался $\text{BART}_{\text{LARGE}}$.
+    \end{block}
+
+\end{frame}
+
+\begin{frame}{Результаты}
+
+    \begin{block}{Table-to-text}
+        Как видно по таблице~\ref{prefix:table-to-text}, prefix-tuning обходит другие бейзлайны\footnote{Adapter и FT-TOP2} добавляя всего лишь $0.1\%$ параметров и имеет качество, сравнимое с полным fine-tuning на всех трех датасетах. Если уменьшить количество параметров для метода adapter до тех же $0.1\%$, его качество станет сильно хуже prefix-tuning.
+    \end{block}
+
+    \begin{block}{Summarization}
+        Судя по таблице~\ref{prefix:summarization}, prefix-tuning уже уступает полному fine-tuning в силу более сложного датасета.
+    \end{block}
+
+\end{frame}
+
+\begin{frame}{Таблица}
+
+    \begin{figure}
+        \label{prefix:table-to-text}
+        \caption{Table-to-text}
+        \begin{center}
+            \includegraphics[scale=0.27]{images/prefix_2.jpg}
+        \end{center}
+    \end{figure}
+
+    \begin{figure}
+        \label{prefix:summarization}
+        \caption{Summarization}
+        \begin{center}
+            \includegraphics[scale=0.3]{images/prefix_3.jpg}
+        \end{center}
+    \end{figure}
+
+\end{frame}
+
+\section{LoRA}
+
+\begin{frame}{LoRA}
+    Последняя рассматриваемая техника PEFT это LoRA~\cite{lora}, то есть Low-Rank Adaptation of Large Language Models.
+\end{frame}
+
+
+\begin{frame}[allowframebreaks]
+    \frametitle{Список литературы}
+    \printbibliography
+\end{frame}
+
+
+\end{document}
