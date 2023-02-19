@@ -4,6 +4,7 @@
 
 \usepackage{wrapfig}
 
+\usepackage{tikz}
 \usepackage[main=russian,english]{babel}
 \usepackage[utf8]{inputenc}
 \usepackage[T1,T2A]{fontenc}
@@ -237,12 +238,55 @@
 
 
 \begin{frame}{Красивая картинка}
+
     \begin{figure}
-        \caption{Добавление контекста в префикс входных данных и сравнение с полным fine-tuning}
+        \caption{Сравнение количества обучаемых параметров в полном fine-tuning и prefix-tuning}
         \begin{center}
             \includegraphics[scale=0.5]{images/prefix_1.jpg}
         \end{center}
     \end{figure}
+
+\end{frame}
+
+
+\begin{frame}{Ещё одна красивая картинка}
+
+    \begin{figure}
+        \caption{Куда пихать перфикс}
+        \begin{center}
+            \includegraphics[scale=0.35]{images/prefix_4.jpg}
+        \end{center}
+    \end{figure}
+
+\end{frame}
+
+
+\begin{frame}{Формулки}
+
+    \begin{block}{Авторегрессионая языковая модель}
+        Предположим, что у нас есть модель $p_{\phi}(y | x)$, основанная на трансформере и параметризованная от $\phi$. Пусть $z = [x; y]$ --- конкатенация входных и выходных данных одного примера. Так как это авторегрессионая модель, то можем ввести вектора активации $h_i = [h_i^{(1)}; \ldots ; h_i^{(n)}]$, где $i$ отвечает за момент времени $i$ (то есть когда мы будем пихать в модель $i$-ый токен из $z$), а верхний индекс отвечает за номер слоя трансформера. Тогда трансформер будет вычислять эти вектора как: \[ h_i = LM_{\phi}(z_i, h_{<i}), \] а распределение вероятностей для предсказания следующего токена вычисляется как софтмакс от классификатора после последнего слоя $h_i^{(n)}$.
+    \end{block}
+
+    \begin{block}{Encoder-Decoder}
+        Эта архитектура отличается только тем, что вектора $h_i$ для входных данных считаются в энкодере, а для выходных данных считаются в декодере.
+    \end{block}
+
+\end{frame}
+
+
+\begin{frame}{Метод}
+    
+    \begin{block}{База}
+        В авторегрессионной модели допихиваем префикс как $z = [\text{PREFIX}; x; y]$, а в encoder-decoder $z = [\text{PREFIX}; x; \text{PREFIX'}; y]$. Пусть $P_{idx}$ --- последовательность индексов добавленных в $z$ префиксов. Тогда мы хотим обучать матрицу $P_{\theta}$, хранящую вектора активации для префиксов: \[ h_i = \begin{cases}
+            P_{\theta}[i, :], & \text{if } i \in P_{idx}, \\
+            LM_{\phi}(z_i, h_{<i}), & \text{otherwise}.
+        \end{cases} \]
+    \end{block}
+
+    \begin{block}{Фундамент}
+        Учить матрицу $P_{\theta}$ в лоб выходит неэффективно, поэтому можно представить её в виде $P_{\theta}[i, :] = MLP_{\theta}(P_{\theta}'[i, :])$ с помощью меньшей матрицы $P_{\theta}'$ и нейронной сети $MLP_{\theta}$\footnote{имхо это похоже на то, что мы backbone модели оставили как есть, а решатель задачи запихали из переда в зад модели}.
+    \end{block}
+
 \end{frame}
 
 
@@ -293,7 +337,32 @@
 \section{LoRA}
 
 \begin{frame}{LoRA}
-    Последняя рассматриваемая техника PEFT это LoRA~\cite{lora}, то есть Low-Rank Adaptation of Large Language Models.
+    
+    Последняя рассматриваемая техника PEFT это LoRA~\cite{lora}, то есть Low-Rank Adaptation of Large Language Models. Для начала вспомним одно из определений ранга матрицы:
+
+    \begin{definition}[Ранг матрицы]
+        Рангом матрицы $A \in \mathbb{R}^{m \times n}$ будем называть минимальное неотрицательное целое число $k$ такое, что $A$ можно представить в виде произведения $A = C R$ двух матриц\footnote{картинку я рисовал честно в техе} $C \in \mathbb{R}^{m \times k}$ и $R \in \mathbb{R}^{k \times n}$.
+
+        \begin{figure}
+            \begin{center}
+                \begin{tikzpicture}
+                    \node[left] at (0, 1.5) {$m$};
+                    \node[above] at (1, 3) {$n$};
+                    \filldraw[fill=blue!20!white, draw=black] (0, 0) rectangle (2, 3) node[pos=.5] {$A$};
+                    \node at (2.5, 1.5) {$=$};
+                    \node[left] at (3.2, 1.5) {$m$};
+                    \node[above] at (3.7, 3) {$k$};
+                    \filldraw[fill=pink!20!white, draw=black] (3.2, 0) rectangle (4.2, 3) node[pos=.5] {$C$};
+                    \node at (4.45, 1.5) {$\times$};
+                    \node[left] at (4.9, 1.5) {$k$};
+                    \node[above] at (5.9, 2) {$n$};
+                    \filldraw[fill=yellow!20!white, draw=black] (4.9, 1) rectangle (6.9, 2) node[pos=.5] {$R$};
+                \end{tikzpicture}
+            \end{center}
+        \end{figure}
+
+    \end{definition}
+
 \end{frame}
 
 
