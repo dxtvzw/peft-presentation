@@ -1,0 +1,132 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage{amsfonts, amsmath, amsthm, amssymb}
+\usepackage[left=1cm,right=1cm,top=1cm,bottom=2cm]{geometry}
+\usepackage{paralist}
+\usepackage[russian]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{verbatim}
+
+\newcounter{problem}
+\newcommand{\problem}{\par \bigskip \refstepcounter{problem}%
+\textbf{Задача №\arabic{problem}.} }
+
+\def \Problem#1{\par \bigskip \textbf{Задача №{#1}. }}
+\def \solution{\par \bigskip \textbf{Решение. }}
+\def \solutionI{\par \bigskip \textbf{Первое решение. }}
+\def \solutionII{\par \bigskip \textbf{Второе решение. }}
+\def \solutionIII{\par \bigskip \textbf{Третье решение. }}
+\def \Lemma{\par \bigskip \textbf{Лемма. }}
+\def \lemma#1{\par \bigskip \textbf{Лемма {#1}. }}
+\def \proof{\par \bigskip \textbf{Доказательство. }}
+\def \answer{\par \bigskip \textbf{Ответ. }}
+
+\DeclareRobustCommand{\divby}{%
+  \mathrel{\text{\vbox{\baselineskip.65ex\lineskiplimit0pt\hbox{.}\hbox{.}\hbox{.}}}}%
+}
+
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Comp}{\mathbb{C}}
+\newcommand{\Q}{\mathbb{Q}}
+\newcommand{\B}{\mathfrak{B}}
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\D}{\mathbb{D}}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+
+\DeclareMathOperator{\rank}{rank \ }
+\DeclareMathOperator{\range}{range \ }
+\DeclareMathOperator{\nulll}{null \ }
+\DeclareMathOperator{\nullity}{nullity \ }
+\DeclareMathOperator{\Tr}{Tr \ }
+\DeclareMathOperator{\adj}{adj}
+\DeclareMathOperator{\spann}{span}
+\DeclareRobustCommand{\ker}{ker}
+\DeclareRobustCommand{\modulo}{\ mod \ }
+
+\usepackage{amsmath}
+\usepackage{systeme}
+
+\usepackage{amsmath}
+\DeclareMathOperator{\sign}{sign}
+
+\usepackage{listings}
+
+\usepackage[utf8]{inputenc}
+
+\usepackage{xcolor}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,          
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+
+%\begin{lstlisting}[language = C++]
+%\end{lstlisting}
+
+\title{Вопросы по докладу}
+\author{Зиманов Алихан}
+\date{\today}
+%\maketitle
+%\pagenumbering{gobble}
+\setcounter{problem}{0}
+
+\begin{document}
+
+\maketitle
+
+\par \bigskip \textbf{Вопрос. } Что такое fine-tuning? Что такое parameter-efficient fine-tuning и зачем он нужен?
+
+\par \bigskip \textbf{Ответ. } Fine-tuning --- использование уже обученной, но на другую задачу модели как инициализацию весов для новой модели, решающей текущую задачу. Parameter-efficient fine-tuning --- fine-tuning, который обучает лишь маленькую часть весов модели, тем самым позволяя делить большую часть исходной модели между разными задачами и меняя между ними только эту малую часть обучаемых весов.
+
+\par \bigskip \textbf{Вопрос. } Что такое continual learning и почему его не стоит использовать для решения нескольких задач в случайном порядке?
+
+\par \bigskip \textbf{Ответ. } Continual learning это подход обучения одной модели для решения нескольких задач. В нём одной и той же модели последовательно даются задачи и мы дообучаем её решать текущую задачу. Этот плохо подходит для решения задач в случайном порядке потому что когда мы обучаем нашу модель на новую задачу, её способность решать предыдущую утрачивается, что приводит к заметному ухудшению качества модели.
+
+\par \bigskip \textbf{Вопрос. } В чём основная идея adapter tuning и как его применить к трансформеру?
+
+\par \bigskip \textbf{Ответ. } Adapter tuning заключается в том, что мы добавляем adapter слои между слоями исходной модели и далее обучаем только веса этих добавленных слоев, а веса исходной модели не меняем. Adapter слой состоит из трех преобразований: проекция входного вектора в меньшее пространство, нелинейность, проекция полученного вектора обратно в пространство исходной размерности. Для применения adapter tuning в трансформере надо вставить adapter слои после каждого feed-forward слоя.
+
+\par \bigskip \textbf{Вопрос. } В чём заключается идея prefix-tuning? Как стоит обучать префиксы-контексты?
+
+\par \bigskip \textbf{Ответ. } В моделях NLP часто используются векторы контекста, которые призваны подсказывать модели следующие токены. Prefix-tuning утилизирует эту идею и с помощью специального префикса входных данных подсказывает модели какую именно задачу она сейчас должна решать. Если обучать веса префиксов $P_{\theta}$ явно в лоб, то получится слабенькое качество, поэтому можно заменить их скрытыми префиксами $P_{\theta}'$ и небольшой нейронной сетью $MLP_{\theta}$ так, что $P_{\theta}[i, :] = MLP_{\theta}(P_{\theta}'[i, :])$ и теперь обучать $P_{\theta}'$ и веса у $MLP_{\theta}$.
+
+\par \bigskip \textbf{Вопрос. } Выпишете функцию, которую мы хотим максимизировать во время fine-tuning и объясните все обозначения (по-хорошему, формулировку из метода LoRA).
+
+\par \bigskip \textbf{Ответ. } Функция выглядит как: \[ \max_{\Delta \Phi} \sum_{(x, y) \in Z} \sum_{t = 1}^{|y|} \log \left( P_{\Phi_0 + \Delta \Phi} (y_t | x, y_{< t}) \right) . \]
+
+\begin{itemize}
+    \item $\Phi_0$ -- веса исходной модели;
+    \item $\Delta \Phi$ -- изменение весов исходной модели во время fine-tuning;
+    \item $Z$ -- датасет новой задачи и $(x, y) \in Z$ -- пара входных и выходных данных задачи;
+    \item $P_{\Phi_0 + \Delta \Phi}$ -- модель после обучения на новую задачу и $P_{\Phi_0 + \Delta \Phi} (y_t | x, y_{< t})$ -- соответствующая вероятность получить токен $y_t$ при условии токенов из $x$ и $y_{< t}$.
+\end{itemize}
+
+\par \bigskip \textbf{Вопрос. } В чём заключается метод LoRA для одной матрицы? К каким матрицам трансформера стоит применять этот метод?
+
+\par \bigskip \textbf{Ответ. } Допустим у нас есть матрица $W_0$ из исходной модели. Добавим в модель рядом с $W_0$ две низкоранговые матрицы $A$ и $B$ так, чтобы при входе $x$ данная часть модели выдавала $W_0 x + B A x$ и будем обучать только эти добавленные матрицы $A$ и $B$. Матрицы $A$ и $B$ играют роль низкорангового приближения матрицы $\Delta W$, которая является изменением матрицы $W_0$ во время честного fine-tuning. В трансформере эти низкоранговые приближения стоит применять к матрицам слоев self-attention.
+
+\end{document}
